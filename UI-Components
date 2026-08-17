@@ -1,0 +1,14 @@
+header :
+   avatar image
+   local AI text
+   status:
+         online
+         typing...
+         thinking...
+chatframe:
+   user message bubles
+   AI reply (using tk.Text (to give the opportunite to copy the text))
+messagebox:
+   text area
+   send button
+conversation history
