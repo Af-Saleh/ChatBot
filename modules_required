@@ -1,0 +1,6 @@
+customtkinter for modern UI
+tkinter for basic UI that uses character as 
+ollama for Local LLM (AI)
+pathlib.Path to create save_file path
+threading.Thread to prevent UI from freezing
+json for saving conversation history and load it 
