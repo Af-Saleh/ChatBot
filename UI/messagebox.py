@@ -7,7 +7,7 @@ class messagebox:
         self.send_command = send_command
     def initialize_shapes(self):
         self.frame = CTkFrame(self.master , corner_radius=25 , border_color='black' , border_width=2 , fg_color='white')
-        self.textbox = Text(self.frame, height =1, border=0, font=('Noto Sans' , 17) , wrap='word',width = 60)
+        self.textbox = Text(self.frame, height =1, border=0, font=('Noto Sans' , 17) , wrap='word',width = 40)
         self.scrlbar = CTkScrollbar(self.frame,command=self.textbox.yview)
         self.textbox.configure(yscrollcommand=self.scrlbar.set)
         self.canvas = Canvas(self.frame , width=39 , height=39 , bg='white' ,  borderwidth = 0 , highlightthickness=0)
@@ -18,6 +18,9 @@ class messagebox:
         self.frame.pack(pady = 15 , side = 'bottom' , padx = 10 )
         self.textbox.pack(pady =(9,8) , padx=(13,5), side='left')
         self.canvas.pack(pady = (4,5), padx=(0,11), side='bottom',anchor='e')
+        self.frame.update()
+        self.frame.pack_forget()
+        self.frame.place(x=(self.master.winfo_width()-self.frame.winfo_width()-40)/2 , y=self.master.winfo_screenheight()-135)
     def hover(self , e=None):
         if e.type == '7' :
             self.canvas.itemconfigure(self.oval, fill = "#6AC5EE")
@@ -41,6 +44,7 @@ class messagebox:
         self.canvas.itemconfigure(self.oval, fill="#6AC5EE")
     def update_height(self):
         lines = self.textbox.count('1.0' , 'end-1c' , 'displaylines' , return_ints=True)
+        self.frame.place_configure(x=(self.master.winfo_width()-self.frame.winfo_width()-40)/2 , y=self.master.winfo_screenheight()-135-(min(lines , 8)*26))
         self.textbox['height'] = min(lines+1 , 9)
         if lines+1 > 9 :
             self.scrlbar.pack(side = 'top' , anchor = 'e' , padx = (0,17) , pady = (2,5))
