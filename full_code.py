@@ -12,7 +12,7 @@ if not SAVEFILE.exists():
 class messagebox:
     def __init__(self , master , send_command=None):
         self.master = master
-        self.running = True
+        self.running , send_bool = [True]*2
         self.frame , self.textbox , self.scrlbar , self.canvas , self.oval , self.placeholder= [None]*6
         self.text = ''
         self.send_command = send_command
@@ -115,7 +115,7 @@ class header:
         self.photo = self.photo.subsample(shrink,shrink)
         self.avatar.create_image(35, 35,image=self.photo)
     def placeall(self):
-        self.frame.pack( padx = 5 , pady = 5)
+        self.frame.pack( padx = 5 , pady = (3,5))
         self.frame.pack_propagate(False)
         self.avatar.pack(side='left' , padx=10 , pady=10)
         self.textframe.pack(side='left' , padx=5)
@@ -124,23 +124,41 @@ class header:
     def main(self):
         self.initialize()
         self.placeall()
+
 class chat_display:
     def __init__(self , master):
-        self.user_message , self.AIreply , self.frame = [None]*3
+        self.AIreply , self.frame  , self.spaceframe = [None]*3
         self.master = master
-    def initialize(self):
-        pass
-        
-
-def printmessage(message):
-    print(message)
+    def initialize_and_place_frame(self):
+        self.frame = CTkScrollableFrame(self.master , fg_color='white')
+        self.frame.pack(fill = 'both' , expand = True)
+        self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=0 , border_color='black')
+        self.spaceframe.pack(side='bottom' , fill = 'x')
+        self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=70 , border=0)
+    def add_user_message(self, user_text):
+        maxwidth = 1
+        for line in user_text.splitlines():
+            maxwidth = max(len(line), maxwidth)
+        userframe = CTkFrame(self.frame,fg_color='white',border_color='black',border_width=2,corner_radius=25)
+        user_message = Text(userframe,wrap='word',bg='white',fg='black',border=0,height=1,width=min(maxwidth, 40),
+                           font=('Segoe UI', 14, 'normal'),
+                           padx=0 , pady=0)
+        user_message.pack(padx=10, pady=10)
+        userframe.pack(anchor='e' , padx = 5 , pady = 5)
+        user_message.insert('1.0', user_text)
+        user_message.update_idletasks()
+        height = user_message.count('1.0','end-1c','displaylines',return_ints=True)
+        user_message.configure(height=height+1,state='disabled')
 set_appearance_mode('light')
 win = Tk()
-frame = CTkFrame(win , border_color='black' , border_width=2)
-frame.pack(fill='y' , side = 'right' , padx = 5)
+win.configure(bg='white')
+fframe = CTkFrame(win , fg_color='white')
+fframe.pack(fill='y' , padx = 5 , expand = True)
 win.state('zoomed')
 win.update()
-h = header(frame , "#0B1F3A")
+h = header(fframe , "#0B1F3A")
 h.main()
-messagebox(frame , printmessage).main()
+main = chat_display(fframe)
+main.initialize_and_place_frame()
+messagebox(fframe , main.add_user_message).main()
 win.mainloop()
