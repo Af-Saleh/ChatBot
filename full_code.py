@@ -12,7 +12,7 @@ if not SAVEFILE.exists():
 class messagebox:
     def __init__(self , master , send_command=None):
         self.master = master
-        self.running , send_bool = [True]*2
+        self.running , self.send_bool = [True]*2
         self.frame , self.textbox , self.scrlbar , self.canvas , self.oval , self.placeholder= [None]*6
         self.text = ''
         self.send_command = send_command
