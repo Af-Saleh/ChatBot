@@ -127,7 +127,7 @@ class chat_display:
     def initialize_and_place_frame(self):
         self.frame = CTkScrollableFrame(self.master , fg_color='white')
         self.frame.pack(fill = 'both' , expand = True)
-        self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=1 , border_color='black')
+        self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=0 , border_color='black')
         self.spaceframe.pack(side='bottom' , fill = 'x')
         #self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=60 , border=0)
     def add_user_message(self, user_text):
