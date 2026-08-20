@@ -4,15 +4,17 @@ from ollama import Client
 from pathlib import Path
 from threading import Thread
 import json
+
 PARENT = Path(__file__).parent.resolve()
 SAVEFILE = PARENT / 'Messages.json'
 if not SAVEFILE.exists():
     with open(SAVEFILE , 'w') as f:
         json.dump({},f)
+
 class messagebox:
     def __init__(self , master , send_command=None):
         self.master = master
-        self.running , self.send_bool = [True]*2
+        self.send_bool = True
         self.frame , self.textbox , self.scrlbar , self.canvas , self.oval , self.placeholder= [None]*6
         self.text = ''
         self.send_command = send_command
@@ -37,22 +39,16 @@ class messagebox:
             self.canvas.itemconfigure(self.oval, fill = "#6AC5EE")
         else :
             self.canvas.itemconfigure(self.oval, fill = 'blue')
-    def click(self):
-        if self.running:
+    def click(self , e=None):
+        if self.send_bool:
             self.canvas.itemconfigure(self.oval, fill = 'blue')
-            self.master.after(50 , self.click)
-        text = self.textbox.get('1.0' , 'end-1c').strip()
-        if text != '': 
-            self.text = text
-            self.send_command(self.text)
-            self.textbox.delete('1.0' , 'end')
-            self.update_messagebox()
-    def start(self , e=None):
-        self.running = True
-        self.click()
-    def stop(self , e=None):
-        self.running = False
-        self.canvas.itemconfigure(self.oval, fill="#6AC5EE")
+            self.master.after(100 , lambda : self.canvas.itemconfigure(self.oval, fill = "#6AC5EE"))
+            text = self.textbox.get('1.0' , 'end-1c').strip()
+            if text != '' :
+                self.send_command(text)
+                self.textbox.delete('1.0' , 'end')
+                self.update_messagebox()
+                self.send_bool = False
     def update_height(self):
         lines = self.textbox.count('1.0' , 'end-1c' , 'displaylines' , return_ints=True)
         self.frame.place_configure(x=(self.master.winfo_width()-self.frame.winfo_width()-40)/2 , y=self.master.winfo_screenheight()-135-(min(lines , 8)*26))
@@ -81,9 +77,8 @@ class messagebox:
         if e and e.state & 0x0001:
             self.update_messagebox()
         else :
-            self.start()
-            self.stop()
-            self.canvas.itemconfigure(self.oval, fill = 'blue')
+            self.click()
+            self.master.after(200 , lambda: self.canvas.itemconfigure(self.oval, fill = 'blue'))
             return 'break'
     def binds(self):
         self.update_placeholder()
@@ -91,14 +86,14 @@ class messagebox:
         self.placeholder.bind('<Button-1>' , self.update_placeholder)
         self.canvas.bind('<Enter>' , self.hover)
         self.canvas.bind('<Leave>' , self.hover)
-        self.canvas.bind('<Button-1>' , self.start)
-        self.canvas.bind('<ButtonRelease-1>' , self.stop)
+        self.canvas.bind('<Button-1>' , self.click)
         self.textbox.bind('<Return>' , self.enter , add='+')
+    def send(self):
+        self.send_bool = True
     def main(self):
         self.initialize_shapes()
         self.place_components()
         self.binds()
-
 class header:
     def __init__(self,master , color):
         self.master = master
@@ -132,16 +127,16 @@ class chat_display:
     def initialize_and_place_frame(self):
         self.frame = CTkScrollableFrame(self.master , fg_color='white')
         self.frame.pack(fill = 'both' , expand = True)
-        self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=0 , border_color='black')
+        self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=1 , border_color='black')
         self.spaceframe.pack(side='bottom' , fill = 'x')
-        self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=70 , border=0)
+        #self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=60 , border=0)
     def add_user_message(self, user_text):
         maxwidth = 1
         for line in user_text.splitlines():
             maxwidth = max(len(line), maxwidth)
         userframe = CTkFrame(self.frame,fg_color='white',border_color='black',border_width=2,corner_radius=25)
         user_message = Text(userframe,wrap='word',bg='white',fg='black',border=0,height=1,width=min(maxwidth, 40),
-                           font=('Segoe UI', 14, 'normal'),
+                           font=('Segoe UI', 14, 'bold'),
                            padx=0 , pady=0)
         user_message.pack(padx=10, pady=10)
         userframe.pack(anchor='e' , padx = 5 , pady = 5)
@@ -149,6 +144,7 @@ class chat_display:
         user_message.update_idletasks()
         height = user_message.count('1.0','end-1c','displaylines',return_ints=True)
         user_message.configure(height=height+1,state='disabled')
+    
 set_appearance_mode('light')
 win = Tk()
 win.configure(bg='white')
