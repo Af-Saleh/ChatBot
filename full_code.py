@@ -119,24 +119,25 @@ class header:
     def main(self):
         self.initialize()
         self.placeall()
-
 class chat_display:
-    def __init__(self , master):
+    def __init__(self , master , enable_chat=None , sendreq = None):
         self.AIreply , self.frame  , self.spaceframe = [None]*3
         self.master = master
+        self.enable = enable_chat
+        self.send = sendreq
     def initialize_and_place_frame(self):
         self.frame = CTkScrollableFrame(self.master , fg_color='white')
         self.frame.pack(fill = 'both' , expand = True)
         self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=0 , border_color='black')
         self.spaceframe.pack(side='bottom' , fill = 'x')
-        #self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=60 , border=0)
     def add_user_message(self, user_text):
         maxwidth = 1
         for line in user_text.splitlines():
             maxwidth = max(len(line), maxwidth)
-        userframe = CTkFrame(self.frame,fg_color='white',border_color='black',border_width=2,corner_radius=25)
-        user_message = Text(userframe,wrap='word',bg='white',fg='black',border=0,height=1,width=min(maxwidth, 40),
-                           font=('Segoe UI', 14, 'bold'),
+        userframe = CTkFrame(self.frame,fg_color='blue',border_color='black',border_width=0,corner_radius=25)
+        user_message = Text(userframe,wrap='word',bg='blue',fg='white',border=0,height=1,width=min(maxwidth, 40),
+                           font=('Cascadia Code', 14, 'bold'),
+                           #Courier New
                            padx=0 , pady=0)
         user_message.pack(padx=10, pady=10)
         userframe.pack(anchor='e' , padx = 5 , pady = 5)
@@ -144,7 +145,39 @@ class chat_display:
         user_message.update_idletasks()
         height = user_message.count('1.0','end-1c','displaylines',return_ints=True)
         user_message.configure(height=height+1,state='disabled')
-    
+        self.send(user_text)
+    def create_place_ai_text(self):
+        self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=82 , border=0 , height=1 , state='disabled')
+        self.AIreply.pack(anchor='w')
+    def add_ai_chunk(self , chunk):
+        self.AIreply.configure(state='normal')
+        self.AIreply.insert('end-1c' , chunk)
+        self.AIreply.update_idletasks()
+        height = self.AIreply.count('1.0' , 'end-1c' , 'displaylines' , return_ints=True)
+        self.AIreply.configure(height=height+1 , state='disabled')
+    def stop(self):
+        self.AIreply = None
+        self.enable()
+class AI:
+    def __init__(self ,master, start = None , stream = None , end = None ):
+        self.start = start
+        self.stream = stream
+        self.end = end
+        self.ai = Client()
+        self.master = master
+    def get_ai_reply(self , message):
+        answer = self.ai.chat(
+            model='Qwen2.5',
+            messages=[{'role' : 'user' , 'content' : message}],
+            stream=True
+        )
+        for chunk in answer:
+            self.stream(chunk['message']['content'])
+        self.master.after(0, self.end)
+    def aireply(self , message):
+        self.start()
+        ans = Thread(target=lambda : self.get_ai_reply(message))
+        ans.start()
 set_appearance_mode('light')
 win = Tk()
 win.configure(bg='white')
@@ -156,5 +189,9 @@ h = header(fframe , "#0B1F3A")
 h.main()
 main = chat_display(fframe)
 main.initialize_and_place_frame()
-messagebox(fframe , main.add_user_message).main()
+m = messagebox(fframe , main.add_user_message)
+m.main()
+main.enable = m.send
+ai = AI(win , main.create_place_ai_text , main.add_ai_chunk , main.stop)
+main.send = ai.aireply
 win.mainloop()
