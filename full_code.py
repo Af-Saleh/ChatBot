@@ -211,7 +211,7 @@ class historymanager:
     def remake(self):
         history = ''
         for conv in self.data.keys():
-            history+= f'conversation {conv+1} : \n'
+            history+= f'conversation {int(conv)+1} : \n'
             for person,res in self.data[conv].items():
                 history += f'{person}: {res} '
             history += '\n'
@@ -244,6 +244,14 @@ main.initialize_and_place_frame()
 m = messagebox(fframe , main.add_user_message)
 m.main()
 main.enable = m.send
-ai = AI(win , main.create_place_ai_text , main.add_ai_chunk , main.stop)
-main.send = ai.aireply
+def stp():
+    his.restart()
+    main.stop()
+ai = AI(win , main.create_place_ai_text , main.add_ai_chunk , stp , his.get_ai_responce)
+his.send = ai.aireply
+def send(mes):
+    his.upload_data()
+    his.get_user_message(mes)
+    his.remake()
+main.send = send
 win.mainloop()
