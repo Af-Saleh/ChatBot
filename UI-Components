@@ -11,4 +11,4 @@ chatframe:
 messagebox:
    text area
    send button
-conversation history
+conversation history panel
