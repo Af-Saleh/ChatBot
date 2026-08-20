@@ -126,7 +126,7 @@ class chat_display:
         self.enable = enable_chat
         self.send = sendreq
     def initialize_and_place_frame(self):
-        self.frame = CTkScrollableFrame(self.master , fg_color='white')
+        self.frame = CTkScrollableFrame(self.master , fg_color='white' , scrollbar_button_color='white' , scrollbar_button_hover_color="#BCBBBB")
         self.frame.pack(fill = 'both' , expand = True)
         self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=0 , border_color='black')
         self.spaceframe.pack(side='bottom' , fill = 'x')
@@ -146,6 +146,7 @@ class chat_display:
         height = user_message.count('1.0','end-1c','displaylines',return_ints=True)
         user_message.configure(height=height+1,state='disabled')
         self.send(user_text)
+        self.frame._parent_canvas.yview_moveto(1.0)
     def create_place_ai_text(self):
         self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=82 , border=0 , height=1 , state='disabled')
         self.AIreply.pack(anchor='w')
@@ -155,29 +156,79 @@ class chat_display:
         self.AIreply.update_idletasks()
         height = self.AIreply.count('1.0' , 'end-1c' , 'displaylines' , return_ints=True)
         self.AIreply.configure(height=height+1 , state='disabled')
+        self.frame._parent_canvas.yview_moveto(1.0)
     def stop(self):
         self.AIreply = None
         self.enable()
 class AI:
-    def __init__(self ,master, start = None , stream = None , end = None ):
+    def __init__(self ,master, start = None , stream = None , end = None  , send_ans = None):
         self.start = start
         self.stream = stream
         self.end = end
         self.ai = Client()
         self.master = master
+        self.send = send_ans
     def get_ai_reply(self , message):
         answer = self.ai.chat(
             model='Qwen2.5',
             messages=[{'role' : 'user' , 'content' : message}],
             stream=True
         )
+        ans = ''
         for chunk in answer:
-            self.stream(chunk['message']['content'])
+            ans += chunk['message']['content']
+            self.master.after(0 , lambda content = chunk['message']['content'] : self.stream(content))
         self.master.after(0, self.end)
+        self.master.after(0, lambda: self.send(ans))
     def aireply(self , message):
         self.start()
         ans = Thread(target=lambda : self.get_ai_reply(message))
         ans.start()
+class historymanager:
+    def __init__(self ,send_the_message = None):
+        self.send = send_the_message
+        self.data = None
+        self.quest , self.ans = ['']*2
+    def upload_data(self):
+        with open(SAVEFILE) as f:
+            self.data = json.load(f)
+    def get_user_message(self , message):
+        self.quest = message
+    def get_ai_responce(self , airesp):
+        self.ans = airesp
+    def add(self):
+        conv = {'user': self.quest , 'you' : self.ans}
+        if len(list(self.data)) == 0 :
+            self.data['0'] =  conv
+        else:
+            last = int(list(self.data)[-1])
+            self.data[str(last+1)] = conv
+        with open(SAVEFILE , 'w') as f:
+            json.dump(self.data , f)
+    def restart(self):
+        self.add()
+        self.quest , self.ans = ['']*2
+    def remake(self):
+        history = ''
+        for conv in self.data.keys():
+            history+= f'conversation {conv+1} : \n'
+            for person,res in self.data[conv].items():
+                history += f'{person}: {res} '
+            history += '\n'
+
+        prompt = f"""
+        You are a helpful AI assistant.
+        Current user message: {self.quest}
+        Conversation history: 
+        {history}
+        Use the conversation history only when it is relevant or necessary to answer the current user message.
+        If the history is not relevant, ignore it.
+        Maintain context when the user refers to something discussed earlier.
+        Answer the current message directly and naturally.
+        """
+        self.send(prompt)
+
+    
 set_appearance_mode('light')
 win = Tk()
 win.configure(bg='white')
@@ -187,6 +238,7 @@ win.state('zoomed')
 win.update()
 h = header(fframe , "#0B1F3A")
 h.main()
+his = historymanager()
 main = chat_display(fframe)
 main.initialize_and_place_frame()
 m = messagebox(fframe , main.add_user_message)
