@@ -1,7 +1,7 @@
 class messagebox:
     def __init__(self , master , send_command=None):
         self.master = master
-        self.running = True
+        self.send_bool = True
         self.frame , self.textbox , self.scrlbar , self.canvas , self.oval , self.placeholder= [None]*6
         self.text = ''
         self.send_command = send_command
@@ -26,22 +26,16 @@ class messagebox:
             self.canvas.itemconfigure(self.oval, fill = "#6AC5EE")
         else :
             self.canvas.itemconfigure(self.oval, fill = 'blue')
-    def click(self):
-        if self.running:
+    def click(self , e=None):
+        if self.send_bool:
             self.canvas.itemconfigure(self.oval, fill = 'blue')
-            self.master.after(50 , self.click)
-        text = self.textbox.get('1.0' , 'end-1c').strip()
-        if text != '': 
-            self.text = text
-            self.send_command(self.text)
-            self.textbox.delete('1.0' , 'end')
-            self.update_messagebox()
-    def start(self , e=None):
-        self.running = True
-        self.click()
-    def stop(self , e=None):
-        self.running = False
-        self.canvas.itemconfigure(self.oval, fill="#6AC5EE")
+            self.master.after(100 , lambda : self.canvas.itemconfigure(self.oval, fill = "#6AC5EE"))
+            text = self.textbox.get('1.0' , 'end-1c').strip()
+            if text != '' :
+                self.send_command(text)
+                self.textbox.delete('1.0' , 'end')
+                self.update_messagebox()
+                self.send_bool = False
     def update_height(self):
         lines = self.textbox.count('1.0' , 'end-1c' , 'displaylines' , return_ints=True)
         self.frame.place_configure(x=(self.master.winfo_width()-self.frame.winfo_width()-40)/2 , y=self.master.winfo_screenheight()-135-(min(lines , 8)*26))
@@ -70,9 +64,8 @@ class messagebox:
         if e and e.state & 0x0001:
             self.update_messagebox()
         else :
-            self.start()
-            self.stop()
-            self.canvas.itemconfigure(self.oval, fill = 'blue')
+            self.click()
+            self.master.after(200 , lambda: self.canvas.itemconfigure(self.oval, fill = 'blue'))
             return 'break'
     def binds(self):
         self.update_placeholder()
@@ -80,9 +73,10 @@ class messagebox:
         self.placeholder.bind('<Button-1>' , self.update_placeholder)
         self.canvas.bind('<Enter>' , self.hover)
         self.canvas.bind('<Leave>' , self.hover)
-        self.canvas.bind('<Button-1>' , self.start)
-        self.canvas.bind('<ButtonRelease-1>' , self.stop)
+        self.canvas.bind('<Button-1>' , self.click)
         self.textbox.bind('<Return>' , self.enter , add='+')
+    def send(self):
+        self.send_bool = True
     def main(self):
         self.initialize_shapes()
         self.place_components()
