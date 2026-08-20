@@ -158,8 +158,40 @@ class chat_display:
         self.AIreply.configure(height=height+1 , state='disabled')
         self.frame._parent_canvas.yview_moveto(1.0)
     def stop(self):
-        self.AIreply = None
         self.enable()
+    def au(self , i):
+        maxwidth = 1
+        for line in i.splitlines():
+            maxwidth = max(len(line), maxwidth)
+        userframe = CTkFrame(self.frame,fg_color='blue',border_color='black',border_width=0,corner_radius=25)
+        user_message = Text(userframe,wrap='word',bg='blue',fg='white',border=0,height=1,width=min(maxwidth, 40),
+                           font=('Cascadia Code', 14, 'bold'),
+                           #Courier New
+                           padx=0 , pady=0)
+        user_message.pack(padx=10, pady=10)
+        userframe.pack(anchor='e' , padx = 5 , pady = 5)
+        user_message.insert('1.0', i)
+        user_message.update_idletasks()
+        height = user_message.count('1.0','end-1c','displaylines',return_ints=True)
+        user_message.configure(height=height+1,state='disabled')
+        self.frame._parent_canvas.yview_moveto(1.0)
+    def aai(self , j):
+        AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=82 , border=0 , height=1 , state='disabled')
+        AIreply.pack(anchor='w')
+        AIreply.configure(state='normal')
+        AIreply.insert('end-1c' , j)
+        AIreply.update_idletasks()
+        height = AIreply.count('1.0' , 'end-1c' , 'displaylines' , return_ints=True)
+        AIreply.configure(height=height+1 , state='disabled')
+        self.frame._parent_canvas.yview_moveto(1.0)
+    def upload_chat(self , history):
+        conv = list(history.values())
+        for chat in conv:
+            i = chat['user']
+            j = chat['you']
+            self.au(i)
+            self.aai(j)
+
 class AI:
     def __init__(self ,master, start = None , stream = None , end = None  , send_ans = None):
         self.start = start
@@ -178,12 +210,13 @@ class AI:
         for chunk in answer:
             ans += chunk['message']['content']
             self.master.after(0 , lambda content = chunk['message']['content'] : self.stream(content))
-        self.master.after(0, self.end)
         self.master.after(0, lambda: self.send(ans))
+        self.master.after(0, self.end)
     def aireply(self , message):
         self.start()
         ans = Thread(target=lambda : self.get_ai_reply(message))
         ans.start()
+
 class historymanager:
     def __init__(self ,send_the_message = None):
         self.send = send_the_message
@@ -197,14 +230,16 @@ class historymanager:
     def get_ai_responce(self , airesp):
         self.ans = airesp
     def add(self):
-        conv = {'user': self.quest , 'you' : self.ans}
-        if len(list(self.data)) == 0 :
-            self.data['0'] =  conv
+        conv = {'user': self.quest, 'you': self.ans}
+
+        if not self.data:
+            self.data['0'] = conv
         else:
-            last = int(list(self.data)[-1])
-            self.data[str(last+1)] = conv
-        with open(SAVEFILE , 'w') as f:
-            json.dump(self.data , f)
+            last = max(map(int, self.data.keys()))
+            self.data[str(last + 1)] = conv
+
+        with open(SAVEFILE, 'w') as f:
+            json.dump(self.data, f, indent=4)
     def restart(self):
         self.add()
         self.quest , self.ans = ['']*2
@@ -254,4 +289,6 @@ def send(mes):
     his.get_user_message(mes)
     his.remake()
 main.send = send
+his.upload_data()
+main.upload_chat(his.data)
 win.mainloop()
