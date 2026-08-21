@@ -110,7 +110,7 @@ class header:
         self.photo = self.photo.subsample(shrink,shrink)
         self.avatar.create_image(35, 35,image=self.photo)
     def placeall(self):
-        self.frame.pack( padx = 5 , pady = (3,5))
+        self.frame.pack( padx = 5 , pady = (3,0))
         self.frame.pack_propagate(False)
         self.avatar.pack(side='left' , padx=10 , pady=10)
         self.textframe.pack(side='left' , padx=5)
@@ -125,11 +125,24 @@ class chat_display:
         self.master = master
         self.enable = enable_chat
         self.send = sendreq
+        self.begin = False
+        self.animations = ('Thinking', 'Thinking.', 'Thinking..', 'Thinking...')
+        self.index = 0
     def initialize_and_place_frame(self):
-        self.frame = CTkScrollableFrame(self.master , fg_color='white' , scrollbar_button_color='white' , scrollbar_button_hover_color="#BCBBBB")
+        self.frame = CTkScrollableFrame(self.master , fg_color='white' , scrollbar_button_color='white' , scrollbar_button_hover_color="#BCBBBB" , border_color='black' , border_width=2)
         self.frame.pack(fill = 'both' , expand = True)
-        self.spaceframe = CTkFrame(self.frame , height=75 , fg_color='white' , border_width=0 , border_color='black')
+        self.spaceframe = CTkFrame(self.frame , height=150 , fg_color='white' , border_width=0 , border_color='black')
         self.spaceframe.pack(side='bottom' , fill = 'x')
+    def animation(self):
+        if not self.begin:
+            self.AIreply.configure(state='normal' , fg='grey')
+            self.AIreply.delete('1.0' , 'end')
+            self.AIreply.insert('1.0' , self.animations[self.index])
+            self.index = (self.index+1)%4
+            self.AIreply.configure(state='disabled')
+            self.master.after(500 , self.animation)
+        else:
+            self.index=0
     def add_user_message(self, user_text):
         maxwidth = 1
         for line in user_text.splitlines():
@@ -150,7 +163,13 @@ class chat_display:
     def create_place_ai_text(self):
         self.AIreply = Text(self.frame , wrap='word' , bg='white' , font=('Segoe UI' , 15 , 'bold') , fg='black' , width=82 , border=0 , height=1 , state='disabled')
         self.AIreply.pack(anchor='w')
+        self.animation()
     def add_ai_chunk(self , chunk):
+        if not self.begin:
+            self.begin = True
+            self.AIreply.configure(state='normal')
+            self.AIreply.delete('1.0' , 'end')
+            self.AIreply.configure(state='disabled' , fg='black')
         self.AIreply.configure(state='normal')
         self.AIreply.insert('end-1c' , chunk)
         self.AIreply.update_idletasks()
@@ -159,6 +178,7 @@ class chat_display:
         self.frame._parent_canvas.yview_moveto(1.0)
     def stop(self):
         self.enable()
+        self.begin = False
     def au(self , i):
         maxwidth = 1
         for line in i.splitlines():
@@ -191,6 +211,7 @@ class chat_display:
             j = chat['you']
             self.au(i)
             self.aai(j)
+        win.after(10, lambda: self.frame._parent_canvas.yview_moveto(1.0))
 
 class AI:
     def __init__(self ,master, start = None , stream = None , end = None  , send_ans = None):
@@ -207,13 +228,13 @@ class AI:
             stream=True
         )
         ans = ''
+        self.start()
         for chunk in answer:
             ans += chunk['message']['content']
             self.master.after(0 , lambda content = chunk['message']['content'] : self.stream(content))
         self.master.after(0, lambda: self.send(ans))
         self.master.after(0, self.end)
     def aireply(self , message):
-        self.start()
         ans = Thread(target=lambda : self.get_ai_reply(message))
         ans.start()
 
@@ -252,15 +273,28 @@ class historymanager:
             history += '\n'
 
         prompt = f"""
-        You are a helpful AI assistant.
-        Current user message: {self.quest}
-        Conversation history: 
-        {history}
-        Use the conversation history only when it is relevant or necessary to answer the current user message.
-        If the history is not relevant, ignore it.
-        Maintain context when the user refers to something discussed earlier.
-        Answer the current message directly and naturally.
-        """
+You are a local AI assistant inside the user's chatbot application.
+
+CURRENT USER MESSAGE:
+{self.quest}
+
+PREVIOUS CONVERSATION:
+{history}
+
+IMPORTANT RULES:
+- The CURRENT USER MESSAGE is the only message you need to answer.
+- PREVIOUS CONVERSATION is context only. Never answer it again.
+- Do not repeat greetings, questions, or responses from the previous conversation.
+- Do not restart the conversation.
+- Continue naturally from the current user's message.
+- Use previous information only when it helps answer the current message.
+- Never mention that you were given history or memory.
+- Never say "it's nice to meet you again" unless the current message actually calls for it.
+- Answer in the same language as the current user message.
+- Be concise and conversational.
+
+Respond ONLY to the CURRENT USER MESSAGE.
+"""
         self.send(prompt)
 
     
